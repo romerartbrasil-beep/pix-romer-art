@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RomerArt - Controle de Entregas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 15px;
+            color: #333;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            font-size: 18px;
+            text-align: center;
+            color: #1a252f;
+            margin-bottom: 20px;
+        }
+        label {
+            font-size: 14px;
+            font-weight: bold;
+            display: block;
+            margin-top: 12px;
+        }
+        select, input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .status-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .status-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .btn-entregue { background-color: #27ae60; color: white; }
+        .btn-retorno { background-color: #c0392b; color: white; }
+        .status-btn.inactive { background-color: #e0e0e0; color: #777; }
+        
+        button.submit {
+            width: 100%;
+            background-color: #2c3e50;
+            color: white;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        .loading {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #2980b9;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>RomerArt • Registro de Rota</h2>
+    
+    <form id="deliveryForm">
+        <label>Plataforma:</label>
+        <select id="plataforma">
+            <option value="Mercado Livre">Mercado Livre</option>
+            <option value="Amazon">Amazon</option>
+            <option value="Outros">Outros</option>
+        </select>
+
+        <label>Código do Pedido / Rastreio:</label>
+        <input type="text" id="codigo" placeholder="Digite ou cole o código" required>
+
+        <label>Status da Entrega:</label>
+        <div class="status-group">
+            <button type="button" id="btnEntregue" class="status-btn btn-entregue" onclick="setStatus('Entregue')">Entregue</button>
+            <button type="button" id="btnRetorno" class="status-btn btn-retorno inactive" onclick="setStatus('Retorno')">Retorno</button>
+        </div>
+
+        <label>Observação (Opcional):</label>
+        <textarea id="obs" rows="2" placeholder="Ex: Deixado na portaria"></textarea>
+
+        <button type="submit" class="submit">Salvar na Planilha</button>
+        <div id="loading" class="loading">Salvando dados e GPS... Aguarde.</div>
+    </form>
+</div>
+
+<script>
+    let statusAtual = "Entregue";
+    const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxlZk_qcJL_gQLh2ZCtarLHcrH2j4L82f2R5c9u826k5MgY3vsy50IYqs8ba6EETbqc/exec"; // Cole sua URL aqui entre as aspas
+
+    function setStatus(status) {
+        statusAtual = status;
+        if(status === 'Entregue') {
+            document.getElementById('btnEntregue').className = "status-btn btn-entregue";
+            document.getElementById('btnRetorno').className = "status-btn btn-retorno inactive";
+        } else {
+            document.getElementById('btnEntregue').className = "status-btn btn-entregue inactive";
+            document.getElementById('btnRetorno').className = "status-btn btn-retorno";
+        }
+    }
+
+    document.getElementById('deliveryForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        document.getElementById('loading').style.display = 'block';
+
+        // Pega a geolocalização do GPS do celular no momento do clique
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                var lat = position.coords.latitude;
+                var lng = position.coords.longitude;
+                var gpsLink = "https://maps.google.com/?q=" + lat + "," + lng;
+                enviarDados(gpsLink);
+            }, function(error) {
+                // Se o GPS estiver desligado, salva mesmo assim sem a coordenada
+                enviarDados("GPS Desligado/Negado");
+            });
+        } else {
+            enviarDados("GPS não suportado");
+        }
+    });
+
+    function enviarDados(gpsInfo) {
+        var dados = {
+            plataforma: document.getElementById('plataforma').value,
+            codigo: document.getElementById('codigo').value,
+            status: statusAtual,
+            gps: gpsInfo,
+            obs: document.getElementById('obs').value
+        };
+
+        fetch(URL_APPS_SCRIPT, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+        }).then(() => {
+            document.getElementById('loading').style.display = 'none';
+            alert("Entrega registrada com sucesso!");
+            document.getElementById('codigo').value = '';
+            document.getElementById('obs').value = '';
+            setStatus('Entregue');
+        }).catch(error => {
+            document.getElementById('loading').style.display = 'none';
+            alert("Erro ao salvar. Verifique sua internet.");
+        });
+    }
+</script>
+
+</body>
+</html>
