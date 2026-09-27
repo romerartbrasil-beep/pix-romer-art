@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Rotas - PWA</title>
+    <!-- Tailwind CSS para um design moderno e responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 shadow-md text-center">
+        <h1 class="text-xl font-bold">RomerArt - Controle de Rotas</h1>
+        <p class="text-xs text-blue-100">Registro de Entregas e Paradas</p>
+    </header>
+
+    <!-- Formulário Principal -->
+    <main class="container mx-auto p-4 max-w-md flex-grow">
+        <form id="routeForm" class="bg-white p-6 rounded-xl shadow-md space-y-4">
+            
+            <!-- Plataforma / App -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Plataforma</label>
+                <select id="platform" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="">Selecione...</option>
+                    <option value="Mercado Envios Extra">Mercado Envios Extra</option>
+                    <option value="Amazon Flex">Amazon Flex</option>
+                    <option value="Shopee (SPX)">Shopee (SPX)</option>
+                    <option value="Outros">Outros</option>
+                </select>
+            </div>
+
+            <!-- Identificação da Rota / Bloco -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">ID da Rota / Bloco</label>
+                <input type="text" id="routeId" required placeholder="Ex: Bloco SP-01 ou Rota A" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- Status da Parada -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select id="status" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="Entregue">Entregue com Sucesso</option>
+                    <option value="Ausente">Destinatário Ausente</option>
+                    <option value="Recusado">Recusado / Problema no Endereço</option>
+                    <option value="Retorno">Retorno ao Depósito</option>
+                </select>
+            </div>
+
+            <!-- Valor / Ganhos (Opcional) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Valor da Rota / Parada (R$)</label>
+                <input type="number" step="0.01" id="amount" placeholder="0,00" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- Geolocalização -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Localização GPS</label>
+                <div class="flex gap-2">
+                    <input type="text" id="gps" readonly placeholder="Clique para capturar GPS" class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2.5 text-sm text-gray-600">
+                    <button type="button" onclick="getLocation()" class="bg-gray-200 hover:bg-gray-300 px-3 rounded-lg text-sm font-medium">📍</button>
+                </div>
+            </div>
+
+            <!-- Câmera / Foto -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Foto do Comprovante</label>
+                <input type="file" id="photo" accept="image/*" capture="environment" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            </div>
+
+            <!-- Observações -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                <textarea id="notes" rows="2" placeholder="Detalhes adicionais..." class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
+            </div>
+
+            <!-- Botão de Envio -->
+            <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3 rounded-lg transition duration-200 shadow-lg">
+                Salvar Registro
+            </button>
+        </form>
+
+        <!-- Status de Feedback -->
+        <div id="feedback" class="mt-4 text-center text-sm font-medium hidden"></div>
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="text-center p-4 text-xs text-gray-500">
+        &copy; 2026 - RomerArt Logística
+    </footer>
+
+    <!-- Lógica JavaScript -->
+    <script>
+        // URL do Google Apps Script (Substitua pela sua URL publicada)
+        const SCRIPT_URL = 'SUA_URL_DO_GOOGLE_APPS_SCRIPT_AQUI';
+
+        // Capturar Geolocalização ao carregar ou via botão
+        function getLocation() {
+            const gpsInput = document.getElementById('gps');
+            if (navigator.geolocation) {
+                gpsInput.value = "Obtendo coordenadas...";
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        gpsInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                    },
+                    (error) => {
+                        gpsInput.value = "Erro ao obter GPS";
+                        console.error(error);
+                    },
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                gpsInput.value = "Geolocalização não suportada";
+            }
+        }
+
+        // Tentar pegar o GPS automaticamente ao abrir o app
+        window.onload = () => {
+            getLocation();
+        };
+
+        // Envio do Formulário
+        document.getElementById('routeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const feedback = document.getElementById('feedback');
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Salvando...";
+            feedback.classList.remove('hidden');
+            feedback.className = "mt-4 text-center text-sm font-medium text-blue-600";
+            feedback.textContent = "Enviando dados para a planilha...";
+
+            const formData = {
+                platform: document.getElementById('platform').value,
+                routeId: document.getElementById('routeId').value,
+                status: document.getElementById('status').value,
+                amount: document.getElementById('amount').value || '0',
+                gps: document.getElementById('gps').value,
+                notes: document.getElementById('notes').value,
+                timestamp: new Date().toLocaleString('pt-BR')
+            };
+
+            try {
+                // Caso queira enviar via fetch para o Google Sheets (Apps Script Web App)
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Necessário para chamadas simples do Apps Script
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                feedback.className = "mt-4 text-center text-sm font-medium text-green-600";
+                feedback.textContent = "Registro salvo com sucesso!";
+                
+                // Limpar formulário (mantendo a plataforma)
+                document.getElementById('routeId').value = '';
+                document.getElementById('amount').value = '';
+                document.getElementById('notes').value = '';
+                document.getElementById('photo').value = '';
+                getLocation();
+
+            } catch (error) {
+                console.error('Erro:', error);
+                feedback.className = "mt-4 text-center text-sm font-medium text-red-600";
+                feedback.textContent = "Erro ao salvar. Verifique sua conexão.";
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Salvar Registro";
+            }
+        });
+    </script>
+</body>
+</html>
